@@ -1,37 +1,13 @@
-## Welcome to GitHub Pages
+# Heros and Heroines
 
-You can use the [editor on GitHub](https://github.com/endremborza/script-mining/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+I scraped over a 1000 movie scripts and looked at how male and female roles appear in them.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+A [similar project](https://pudding.cool/2017/08/screen-direction/) has been published in 2017 on pudding.
 
-### Markdown
+## Data
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+The data was collected from [imdb](www.imdb.com) and [imsdb](www.imsdb.com), as I matched all the available scripts to imdb searches using the following script.
 
-```markdown
-Syntax highlighted code block
+## Results
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/endremborza/script-mining/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+A lot of pretty pictures and visualisations here later on
