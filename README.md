@@ -1,4 +1,4 @@
-# Heros and Heroines
+# Heroes and Heroines
 
 I scraped over a 1000 movie scripts and looked at how male and female roles appear in them.
 
