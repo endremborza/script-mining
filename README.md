@@ -14,13 +14,13 @@ About two thirds of all characters are portrayed by male actors, but this isn't 
 
 Also, the hero definition seems to make at least some sense as the higher billed members appear more often.
 
-![image](bar-hist.png)
+![image](hist-bill.png)
 
 Looking at the number of positive words that follow our heroes and heroines in this second graph, here it is even more articulated, that there is much less difference between first and second billing in the case of women than men. Second billing women even get more positive words than first billing ones.
 
 ![image](sum-sent.png)
 
-
+Using TFIDF, that shows which words appear more often in some categories relative to others, we see that not many essentially feminine or masculine words are present, maybe the fact that heroines are lonely or radiant.
 
 ![image](pos-tfidf.png)
 
