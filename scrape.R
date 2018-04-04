@@ -48,7 +48,7 @@ scrape_plusinfo <- function(infopage){
 
 scrape_imdbmeta <- function(metapage){
   return(c(scrape_imdbtitle(metapage %>% html_node('h1')),
-           scrape_plusinfo(metapage %>% html_node('div.subtext'))
+    scrape_plusinfo(metapage %>% html_node('div.subtext'))
   ))
 }  
 
@@ -97,7 +97,7 @@ imeta <- meta %>% lapply(scrape_imdb) %>% unlist() %>% matrix(nrow=4) %>% t() %>
 
 df_all <- df[1:5,] %>% filter(script!='NA') %>%
   mutate(c(mdata,m2,m3,m4)=scrape_imdb(imeta[[1]]))
-
+  
 
 get_rolenames <- function(row){
   try(return(
@@ -109,8 +109,8 @@ get_rolenames <- function(row){
       mutate(gender = fname %>% sapply( function (x) gender(x)[2])) %>% 
       mutate(bgen = ifelse(gender>0.85,1,0)) %>%
       mutate(problem=ifelse(gender<0.85 & gender>0.15,1,0)) %>% mutate(billing = seq())
-    # %>% filter(problem==0) %>%
-    #group_by(bgen) %>% summarise(X3=paste(X3,collapse=',')) %>% select(X3) %>% t()
+      # %>% filter(problem==0) %>%
+      #group_by(bgen) %>% summarise(X3=paste(X3,collapse=',')) %>% select(X3) %>% t()
   ))
   return(c('',''))
 }
@@ -135,7 +135,7 @@ df <- cbind(data_frame(imdb=imdb,title=titles,script=pres %>% sapply(try_text),
                        url=urls %>% unlist(),irating=rates,roles=roles),imeta)
 
 df_tok <- df %>%
-  select(imdb,script) %>%
+                      select(imdb,script) %>%
   unnest_tokens(ngram, script, token = "ngrams", n = 2, n_min = 2) %>%
   separate(ngram, c("word1", "word2"), remove=FALSE, sep = " ")
 
@@ -168,7 +168,8 @@ for(col in c('n1','n2','n3','n4','n5','n6','n7')){
 }
 
 out <- out %>% select(fing,imdb,billing,bgen,problem,X1) %>% mutate(word1=tolower(fing)) %>%
-  mutate(tabu=word1) %>% unique()
+  mutate(tabu=word1) %>%
+  filter(word1 != 'mr' | word1 != 'ms' | word1 != 'mrs') %>% unique()
 
 huha <- out %>% inner_join(df_tok,by=c('imdb','word1')) %>% filter(billing < 16) %>%
   mutate(tabu=word2) %>% anti_join(out,by="tabu")
@@ -182,7 +183,7 @@ huha <- out %>% inner_join(df_tok,by=c('imdb','word1')) %>% filter(billing < 16)
 library(ggplot2)
 
 huha %>% select(billing,bgen) %>% mutate(gender=ifelse(bgen==1,'male','female')) %>%
-  ggplot(aes(billing, fill=gender)) + 
+ggplot(aes(billing, fill=gender)) + 
   geom_histogram(position = "stack", binwidth=1) +
   ggtitle("Appearances in script by billing order (0 is he/she)")
 
@@ -251,9 +252,6 @@ require(spacyr)
 ## Loading required package: spacyr
 spacy_initialize()
 
-df %>%
-  select(imdb,script) %>%
-  spacy_parse(script, pos = TRUE, tag = TRUE)
 
 scripts <- df$script
 
@@ -262,20 +260,126 @@ names(scripts) <- imdb
 #start: 17:34
 #sp_tok <- spacy_parse(scripts[1:100],tag=TRUE,pos=TRUE)
 
+rm(df_roles)
+rm(final_roles)
+rm(df_tok)
+rm(rates)
+rm(roles)
+rm(huha)
 
 df_toks <- df %>%
   select(imdb,script) %>%
   unnest_tokens(ngram, script, token = "ngrams", n = 3, n_min = 2) %>%
   separate(ngram, c("word1", "word2","word3"), remove=FALSE, sep = " ")
 
-outs <- out %>% select(imdb,billing,bgen,problem,X1,word1)
+outs <- out %>% select(imdb,billing,bgen,problem,X1,word1,tabu)
 
 outs2 <- out %>% mutate(word2=word1) %>%
-  select(imdb,billing,bgen,problem,X1,word2)
+  select(imdb,billing,bgen,problem,X1,word2,tabu)
 
 huhas <- outs %>% inner_join(df_toks,by=c('imdb','word1')) %>% filter(billing < 16) %>%
   mutate(tabu=word2) %>% anti_join(outs,by="tabu") %>% rbind(
     outs2 %>% inner_join(df_toks,by=c('imdb','word2')) %>%
       filter(billing < 16) %>%
-      mutate(tabu=word2) %>% anti_join(out,by="tabu")
+      mutate(tabu=word3) %>% anti_join(outs2,by="tabu")
   )
+
+#write.csv(huha,'huha.csv')
+
+#huhas <- read.csv('huhas.csv',stringsAsFactors = F )
+
+
+spa_tok <- read.csv('spcy-sep.csv',stringsAsFactors = F )
+
+restarter = which(spa_tok$word2=="patrick" & spa_tok$imdb=="tt0147800")[1]
+
+spa_tok <- spa_tok[1:(restarter-1),]
+
+for_tfidf <- spa_tok %>% filter(problem==0) %>% mutate(gender=ifelse(bgen==1,'male','female')) %>%
+  mutate(heroine=ifelse(bgen==0 & billing != 0 & billing < 3,1,0)) %>%
+  mutate(hero=ifelse(bgen==1 & billing != 0 & billing < 3,1,0)) %>%
+  mutate(status=ifelse(hero==1,'hero',gender)) %>%
+  mutate(status=ifelse(heroine==1,'heroine',status)) %>%
+  group_by(sep.lemma2) %>%
+  mutate(u2=length(unique(X1))) %>%
+  ungroup() %>%
+  group_by(sep.lemma3) %>%
+  mutate(u3=length(unique(X1))) %>%
+  ungroup()
+
+
+for_tfidf %>% filter(sep.pos2=="VERB") %>%
+  filter(u2>20) %>%
+  count(status, sep.lemma2, sort = TRUE) %>%
+  ungroup() %>%
+  bind_tf_idf(sep.lemma2, status, n) %>%
+  arrange(desc(tf_idf)) %>%
+  group_by(status) %>%
+  top_n(6, tf_idf) %>%
+  ungroup() %>%
+  mutate(word = reorder(sep.lemma2, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = status)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ status, scales = "free") +
+  ylab("tf-idf") +
+  coord_flip() +
+  ggtitle("Most characteristic verbs")
+
+ggsave("verbs.png")
+
+for_tfidf %>% filter(sep.pos3=="ADJ") %>%
+  filter(u3>10) %>%
+  filter(sep.lemma2=="be") %>%
+  count(status, sep.lemma3, sort = TRUE) %>%
+  ungroup() %>%
+  bind_tf_idf(sep.lemma3, status, n) %>%
+  arrange(desc(tf_idf)) %>%
+  group_by(status) %>%
+  top_n(6, tf_idf) %>%
+  ungroup() %>%
+  mutate(word = reorder(sep.lemma3, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = status)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ status, scales = "free") +
+  ylab("tf-idf") +
+  coord_flip() +
+  ggtitle("Most characteristic adjectives after 'be'")
+
+ggsave("be-adj.png")
+
+
+spa_tok <- read.csv('spcy-sep.csv',stringsAsFactors = F )
+
+restarter = which(spa_tok$word2=="patrick" & spa_tok$imdb=="tt0147800")[1]
+
+spa_tok2 <- spa_tok[restarter:dim(spa_tok)[1],]
+
+for_tfidf2 <- spa_tok2 %>% filter(problem==0) %>% mutate(gender=ifelse(bgen==1,'male','female')) %>%
+  mutate(heroine=ifelse(bgen==0 & billing != 0 & billing < 3,1,0)) %>%
+  mutate(hero=ifelse(bgen==1 & billing != 0 & billing < 3,1,0)) %>%
+  mutate(status=ifelse(hero==1,'hero',gender)) %>%
+  mutate(status=ifelse(heroine==1,'heroine',status)) %>%
+  group_by(sep.lemma1) %>%
+  mutate(u1=length(unique(X1))) %>%
+  ungroup() %>%
+  group_by(sep.lemma3) %>%
+  mutate(u3=length(unique(X1))) %>%
+  ungroup()
+
+
+for_tfidf2 %>% filter(sep.pos1=="ADJ") %>%
+  filter(u1>400) %>%
+  count(status, sep.lemma1, sort = TRUE) %>%
+  ungroup() %>%
+  bind_tf_idf(sep.lemma1, status, n) %>%
+  arrange(desc(tf_idf)) %>%
+  group_by(status) %>%
+  top_n(3, tf_idf) %>%
+  ungroup() %>%
+  mutate(word = reorder(sep.lemma1, tf_idf)) %>%
+  ggplot(aes(word, tf_idf, fill = status)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ status, scales = "free") +
+  ylab("tf-idf") +
+  coord_flip() +
+  ggtitle("Most characteristic adjectives before")
